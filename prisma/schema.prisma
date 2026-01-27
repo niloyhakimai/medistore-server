@@ -21,8 +21,8 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relationships
-  orders    Order[]     // একজন কাস্টমারের অনেক অর্ডার থাকতে পারে
-  medicines Medicine[]  // একজন সেলারের অনেক মেডিসিন থাকতে পারে
+  orders    Order[]     
+  medicines Medicine[]  
   reviews   Review[]
 }
 
