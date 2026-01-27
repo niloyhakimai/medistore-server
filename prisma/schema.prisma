@@ -1,0 +1,120 @@
+// medistore-server/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 1. User Model (Admin, Seller, Customer)
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(CUSTOMER)
+  address   String?  // Shipping address
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  orders    Order[]     // একজন কাস্টমারের অনেক অর্ডার থাকতে পারে
+  medicines Medicine[]  // একজন সেলারের অনেক মেডিসিন থাকতে পারে
+  reviews   Review[]
+}
+
+// Enum for Roles
+enum Role {
+  ADMIN
+  SELLER
+  CUSTOMER
+}
+
+// 2. Category Model
+model Category {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  medicines Medicine[]
+}
+
+// 3. Medicine Model (Product)
+model Medicine {
+  id            String   @id @default(uuid())
+  name          String
+  description   String
+  price         Float
+  stock         Int      // Inventory Manage করার জন্য
+  expiryDate    DateTime
+  manufacturer  String
+  image         String?  // Image URL
+
+  // Relationships
+  categoryId    String
+  category      Category @relation(fields: [categoryId], references: [id])
+  
+  sellerId      String
+  seller        User     @relation(fields: [sellerId], references: [id])
+
+  orderItems    OrderItem[]
+  reviews       Review[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// 4. Order Model
+model Order {
+  id          String      @id @default(uuid())
+  totalAmount Float
+  status      OrderStatus @default(PENDING)
+  address     String      // Shipping address for this specific order
+  
+  // Relationships
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  
+  items       OrderItem[]
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+// Enum for Order Status
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+// 5. OrderItem (Cart items converted to Order)
+model OrderItem {
+  id         String   @id @default(uuid())
+  quantity   Int
+  price      Float    // অর্ডার করার সময়ের দাম (যাতে ভবিষ্যতে দাম বাড়লে সমস্যা না হয়)
+  
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id])
+  
+  medicineId String
+  medicine   Medicine @relation(fields: [medicineId], references: [id])
+}
+
+// 6. Review Model (Optional but good for marks)
+model Review {
+  id         String   @id @default(uuid())
+  rating     Int
+  comment    String
+  
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  
+  medicineId String
+  medicine   Medicine @relation(fields: [medicineId], references: [id])
+  
+  createdAt  DateTime @default(now())
+}
