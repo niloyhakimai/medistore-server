@@ -34,3 +34,33 @@ export const getAdminStats = async (req: Request, res: Response) => {
         res.status(500).json({ message: "Failed to fetch admin stats", error });
     }
 };
+
+
+// 2. Get All Users (Customer & Seller)
+export const getAllUsers = async (req: Request, res: Response) => {
+    try {
+        const users = await prisma.user.findMany({
+            select: { id: true, name: true, email: true, role: true, isBanned: true, createdAt: true }
+        });
+        res.status(200).json({ data: users });
+    } catch (error) {
+        res.status(500).json({ message: "Failed to fetch users", error });
+    }
+};
+
+// 3. Ban/Unban User
+export const toggleUserBan = async (req: Request, res: Response) => {
+    try {
+        const { userId } = req.params;
+        const { isBanned } = req.body; // true or false
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: { isBanned }
+        });
+
+        res.status(200).json({ message: `User ${isBanned ? 'banned' : 'activated'} successfully`, data: updatedUser });
+    } catch (error) {
+        res.status(500).json({ message: "Failed to update user status", error });
+    }
+};

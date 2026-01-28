@@ -60,3 +60,32 @@ export const getMyOrders = async (req: Request, res: Response): Promise<void> =>
         res.status(500).json({ message: "Failed to fetch orders", error });
     }
 };
+
+// Customer can only cancel if it's still PLACED
+export const cancelOrder = async (req: Request, res: Response) => {
+    try {
+        const { orderId } = req.params;
+        const userId = (req as any).user.userId;
+
+        const order = await prisma.order.findUnique({ where: { id: orderId } });
+
+        if (!order || order.userId !== userId) {
+             res.status(404).json({ message: "Order not found" });
+             return;
+        }
+
+        if (order.status !== "PLACED") {
+             res.status(400).json({ message: "Order cannot be cancelled now" });
+             return;
+        }
+
+        await prisma.order.update({
+            where: { id: orderId },
+            data: { status: "CANCELLED" }
+        });
+
+        res.status(200).json({ message: "Order cancelled successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Failed to cancel order", error });
+    }
+};

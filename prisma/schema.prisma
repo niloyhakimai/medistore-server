@@ -1,4 +1,5 @@
-// medistore-server/prisma/schema.prisma
+// This is your main Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
@@ -16,17 +17,19 @@ model User {
   email     String   @unique
   password  String
   role      Role     @default(CUSTOMER)
-  address   String?  // Shipping address
+  address   String?  // Default shipping address
+  isBanned  Boolean  @default(false) // Admin feature: To ban/unban users
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relationships
-  orders    Order[]     
-  medicines Medicine[]  
-  reviews   Review[]
+  orders    Order[]    // Orders placed by the customer
+  medicines Medicine[] // Medicines listed by the seller
+  reviews   Review[]   // Reviews written by the user
 }
 
-// Enum for Roles
+// Enum for User Roles
 enum Role {
   ADMIN
   SELLER
@@ -42,35 +45,35 @@ model Category {
 
 // 3. Medicine Model (Product)
 model Medicine {
-  id            String   @id @default(uuid())
-  name          String
-  description   String
-  price         Float
-  stock         Int      // Inventory Manage করার জন্য
-  expiryDate    DateTime
-  manufacturer  String
-  image         String?  // Image URL
+  id           String   @id @default(uuid())
+  name         String
+  description  String
+  price        Float
+  stock        Int      // For inventory management
+  expiryDate   DateTime
+  manufacturer String
+  image        String?  // Optional image URL
 
   // Relationships
-  categoryId    String
-  category      Category @relation(fields: [categoryId], references: [id])
+  categoryId   String
+  category     Category @relation(fields: [categoryId], references: [id])
   
-  sellerId      String
-  seller        User     @relation(fields: [sellerId], references: [id])
+  sellerId     String   // Link to the Seller who listed this
+  seller       User     @relation(fields: [sellerId], references: [id])
 
-  orderItems    OrderItem[]
-  reviews       Review[]
+  orderItems   OrderItem[]
+  reviews      Review[]
   
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 // 4. Order Model
 model Order {
   id          String      @id @default(uuid())
   totalAmount Float
-  status      OrderStatus @default(PENDING)
-  address     String      // Shipping address for this specific order
+  status      OrderStatus @default(PLACED) // Default status as per flow diagram
+  address     String      // Shipping address specific to this order
   
   // Relationships
   userId      String
@@ -82,20 +85,20 @@ model Order {
   updatedAt   DateTime    @updatedAt
 }
 
-// Enum for Order Status
+// Enum for Order Status (Matches your project flow)
 enum OrderStatus {
-  PENDING
+  PLACED
   PROCESSING
   SHIPPED
   DELIVERED
   CANCELLED
 }
 
-// 5. OrderItem (Cart items converted to Order)
+// 5. OrderItem (Links Orders to Medicines)
 model OrderItem {
   id         String   @id @default(uuid())
   quantity   Int
-  price      Float    // অর্ডার করার সময়ের দাম (যাতে ভবিষ্যতে দাম বাড়লে সমস্যা না হয়)
+  price      Float    // Price at the time of purchase
   
   orderId    String
   order      Order    @relation(fields: [orderId], references: [id])
@@ -104,7 +107,7 @@ model OrderItem {
   medicine   Medicine @relation(fields: [medicineId], references: [id])
 }
 
-// 6. Review Model (Optional but good for marks)
+// 6. Review Model (Extra feature for marks)
 model Review {
   id         String   @id @default(uuid())
   rating     Int
