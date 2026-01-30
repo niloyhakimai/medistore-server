@@ -1,10 +1,14 @@
 import express from 'express';
-import { addMedicine, getAllMedicines } from '../controllers/medicineController';
-import { authenticate } from '../middlewares/authMiddleware';
+import { addMedicine, getAllMedicines, getMedicineById } from '../controllers/medicineController';
+import { authenticate, authorizeSeller } from '../middlewares/authMiddleware';
 
 const router = express.Router();
 
-router.post('/', authenticate, addMedicine); // 🔒 only logged in users
-router.get('/', getAllMedicines); // 🔓 public
+// Public Routes
+router.get('/', getAllMedicines);
+router.get('/:id', getMedicineById); 
+
+// Protected Routes (Seller Only)
+router.post('/', authenticate, authorizeSeller, addMedicine);
 
 export default router;

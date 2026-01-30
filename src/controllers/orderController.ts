@@ -2,21 +2,27 @@ import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
 
 // 1. Create Order
-export const createOrder = async (req: Request, res: Response): Promise<void> => {
+export const createOrder = async (req: Request, res: Response) => {
     try {
-        const { items, address } = req.body; // items = [{ medicineId, quantity }]
+        const { items, address } = req.body;
         const userId = (req as any).user.userId;
 
-        // Calculate Total Price (Backend calculation is safer)
+        // Calculate Total Price
         let totalAmount = 0;
-        
-        // We need to fetch medicine details to get the price
+        const orderItemsData = []; // To store items with fetched prices
+
         for (const item of items) {
             const medicine = await prisma.medicine.findUnique({
                 where: { id: item.medicineId }
             });
             if (medicine) {
                 totalAmount += medicine.price * item.quantity;
+                // Prepare item data for creation
+                orderItemsData.push({
+                    medicineId: item.medicineId,
+                    quantity: item.quantity,
+                    price: medicine.price // Save the actual price at time of order
+                });
             }
         }
 
@@ -26,13 +32,9 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
                 userId,
                 totalAmount,
                 address,
-                status: "PENDING",
+                status: "PLACED", // ✅ FIX: Updated from PENDING to PLACED
                 items: {
-                    create: items.map((item: any) => ({
-                        medicineId: item.medicineId,
-                        quantity: item.quantity,
-                        price: 0 // For now simpler, ideally fetch real price
-                    }))
+                    create: orderItemsData // ✅ FIX: Using prepared data with correct prices
                 }
             }
         });
@@ -46,13 +48,14 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
 };
 
 // 2. Get My Orders
-export const getMyOrders = async (req: Request, res: Response): Promise<void> => {
+export const getMyOrders = async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user.userId;
 
         const orders = await prisma.order.findMany({
             where: { userId },
-            include: { items: { include: { medicine: true } } } // Show medicine details
+            include: { items: { include: { medicine: true } } },
+            orderBy: { createdAt: 'desc' } // Newest first
         });
 
         res.status(200).json({ data: orders });
@@ -61,26 +64,28 @@ export const getMyOrders = async (req: Request, res: Response): Promise<void> =>
     }
 };
 
-// Customer can only cancel if it's still PLACED
+// 3. Cancel Order (Customer)
 export const cancelOrder = async (req: Request, res: Response) => {
     try {
         const { orderId } = req.params;
         const userId = (req as any).user.userId;
 
-        const order = await prisma.order.findUnique({ where: { id: orderId } });
+        // ✅ FIX: 'as string' added to fix type error
+        const order = await prisma.order.findUnique({ where: { id: orderId as string } });
 
         if (!order || order.userId !== userId) {
              res.status(404).json({ message: "Order not found" });
              return;
         }
 
+        // ✅ FIX: Checking against PLACED as per new schema
         if (order.status !== "PLACED") {
              res.status(400).json({ message: "Order cannot be cancelled now" });
              return;
         }
 
         await prisma.order.update({
-            where: { id: orderId },
+            where: { id: orderId as string },
             data: { status: "CANCELLED" }
         });
 

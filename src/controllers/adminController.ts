@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
 
+// 1. Get Admin Dashboard Stats
 export const getAdminStats = async (req: Request, res: Response) => {
     try {
         // 1. Total Sales
@@ -55,7 +56,8 @@ export const toggleUserBan = async (req: Request, res: Response) => {
         const { isBanned } = req.body; // true or false
 
         const updatedUser = await prisma.user.update({
-            where: { id: userId },
+            // 👇 FIX: 'as string' যোগ করা হয়েছে
+            where: { id: userId as string },
             data: { isBanned }
         });
 

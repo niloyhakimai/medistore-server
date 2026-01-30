@@ -1,11 +1,11 @@
 import express from 'express';
 import { getAdminStats, getAllUsers, toggleUserBan } from '../controllers/adminController';
-import { authenticate } from '../middlewares/authMiddleware';
-
+import { authenticate, authorizeAdmin } from '../middlewares/authMiddleware'; 
 const router = express.Router();
 
-router.get('/stats', authenticate, getAdminStats);
-router.get('/users', authenticate, getAllUsers); // View all users
-router.patch('/users/:userId', authenticate, toggleUserBan); // Ban user
+// সব রাউটে 'authorizeAdmin' 
+router.get('/stats', authenticate, authorizeAdmin, getAdminStats);
+router.get('/users', authenticate, authorizeAdmin, getAllUsers);
+router.patch('/users/:userId', authenticate, authorizeAdmin, toggleUserBan); // Ban/Unban user
 
 export default router;

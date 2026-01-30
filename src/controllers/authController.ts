@@ -1,77 +1,82 @@
 import { Request, Response } from 'express';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../utils/prisma';
 
-// Register User (আগেরটাই আছে)
-export const registerUser = async (req: Request, res: Response): Promise<void> => {
+// 1. Register User
+export const register = async (req: Request, res: Response): Promise<void> => {
     try {
         const { name, email, password, role } = req.body;
-        const existingUser = await prisma.user.findUnique({ where: { email } });
 
+        // Check if user exists
+        const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) {
-            res.status(400).json({ message: "User already exists!" });
-            return;
+             res.status(400).json({ message: "User already exists! Please Login." });
+             return;
         }
 
-        const hashedPassword = await bcrypt.hash(password, 12);
-        const newUser = await prisma.user.create({
+        // Hash Password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Create User
+        const user = await prisma.user.create({
             data: {
                 name,
                 email,
                 password: hashedPassword,
-                role: role || "CUSTOMER"
+                role: role || "CUSTOMER" // Default role
             }
         });
 
-        res.status(201).json({
-            message: "User registered successfully!",
-            data: { id: newUser.id, email: newUser.email, role: newUser.role }
-        });
+        res.status(201).json({ message: "User created successfully", user });
+
     } catch (error) {
-        res.status(500).json({ message: "Something went wrong", error });
+        console.error("Register Error:", error);
+        res.status(500).json({ message: "Registration failed", error });
     }
 };
 
-// Login User 
-export const loginUser = async (req: Request, res: Response): Promise<void> => {
+// 2. Login User
+export const login = async (req: Request, res: Response): Promise<void> => {
     try {
         const { email, password } = req.body;
 
-        // 1. Check if user exists
+        // Check User
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
-            res.status(404).json({ message: "User not found!" });
-            return;
+             res.status(400).json({ message: "User not found!" });
+             return;
         }
 
-        // 2. Check password
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
-            res.status(401).json({ message: "Invalid credentials!" });
-            return;
+        // Check Ban Status
+        if (user.isBanned) {
+             res.status(403).json({ message: "Your account is banned. Contact Admin." });
+             return;
         }
 
-        // 3. Generate Token
+        // Check Password
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+             res.status(400).json({ message: "Invalid credentials!" });
+             return;
+        }
+
+        // Generate Token
         const token = jwt.sign(
             { userId: user.id, role: user.role },
             process.env.JWT_SECRET as string,
-            { expiresIn: '7d' } // Token expires in 7 days
+            { expiresIn: "7d" }
         );
 
-        // 4. Send Response
-        res.status(200).json({
-            message: "Login successful!",
-            token,
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-            }
+        // Send Response
+        res.status(200).json({ 
+            message: "Login successful", 
+            token, 
+            user: { id: user.id, name: user.name, email: user.email, role: user.role } 
         });
 
     } catch (error) {
-        res.status(500).json({ message: "Something went wrong", error });
+        console.error("Login Error:", error);
+        res.status(500).json({ message: "Login failed", error });
     }
 };

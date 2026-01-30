@@ -39,3 +39,24 @@ export const getAllMedicines = async (req: Request, res: Response) => {
         res.status(500).json({ message: "Error fetching medicines", error });
     }
 };
+
+// Get Single Medicine by ID
+export const getMedicineById = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const medicine = await prisma.medicine.findUnique({
+
+            where: { id: id as string }, 
+            include: { category: true, seller: { select: { name: true } } }
+        });
+
+        if (!medicine) {
+             res.status(404).json({ message: "Medicine not found" });
+             return; 
+        }
+
+        res.status(200).json({ data: medicine });
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching medicine details", error });
+    }
+};
