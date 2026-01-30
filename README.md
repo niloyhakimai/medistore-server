@@ -1,4 +1,3 @@
-```markdown
 # 🏥 MediStore - Backend Server
 
 This is the **Backend Server** for the MediStore application. It handles authentication, database management, and API logic.
