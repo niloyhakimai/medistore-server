@@ -69,7 +69,7 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
 // 4. Get Seller Orders (Demo Version: Show ALL Orders)
 export const getSellerOrders = async (req: Request, res: Response) => {
     try {
-        // 👇 ডেমোর জন্য ফিল্টার সরিয়ে দিয়েছি। এখন সব অর্ডার সব সেলার দেখতে পাবে।
+
         const orders = await prisma.order.findMany({
             include: {
                 user: { 
@@ -90,5 +90,45 @@ export const getSellerOrders = async (req: Request, res: Response) => {
     } catch (error) {
         console.error("Error fetching orders:", error);
         res.status(500).json({ message: "Failed to fetch orders", error });
+    }
+};
+
+// Delete Medicine
+export const deleteMedicine = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params as { id: string }; 
+        
+        await prisma.medicine.delete({ 
+            where: { id } 
+        });
+        
+        res.status(200).json({ message: "Medicine deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Failed to delete medicine" });
+    }
+};
+
+// 5. Update Medicine
+export const updateMedicine = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params as { id: string };
+        const { name, description, price, stock, manufacturer, expiryDate, categoryId } = req.body;
+
+        const updatedMedicine = await prisma.medicine.update({
+            where: { id },
+            data: {
+                name,
+                description,
+                price: parseFloat(price),
+                stock: parseInt(stock),
+                manufacturer,
+                expiryDate: new Date(expiryDate),
+                categoryId
+            }
+        });
+
+        res.status(200).json({ message: "Medicine updated successfully", data: updatedMedicine });
+    } catch (error) {
+        res.status(500).json({ message: "Failed to update medicine", error });
     }
 };

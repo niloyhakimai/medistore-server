@@ -4,7 +4,7 @@ import { createCategory, getAllCategories } from '../controllers/categoryControl
 const router = express.Router();
 
 // Routes
-router.post('/', createCategory); // Create
-router.get('/', getAllCategories); // Get All
+router.post('/', createCategory); 
+router.get('/', getAllCategories); 
 
 export default router;

@@ -32,9 +32,9 @@ export const createOrder = async (req: Request, res: Response) => {
                 userId,
                 totalAmount,
                 address,
-                status: "PLACED", // ✅ FIX: Updated from PENDING to PLACED
+                status: "PLACED", //  FIX: Updated from PENDING to PLACED
                 items: {
-                    create: orderItemsData // ✅ FIX: Using prepared data with correct prices
+                    create: orderItemsData // FIX: Using prepared data with correct prices
                 }
             }
         });
@@ -70,7 +70,7 @@ export const cancelOrder = async (req: Request, res: Response) => {
         const { orderId } = req.params;
         const userId = (req as any).user.userId;
 
-        // ✅ FIX: 'as string' added to fix type error
+        //  FIX: 'as string' added to fix type error
         const order = await prisma.order.findUnique({ where: { id: orderId as string } });
 
         if (!order || order.userId !== userId) {
@@ -78,7 +78,7 @@ export const cancelOrder = async (req: Request, res: Response) => {
              return;
         }
 
-        // ✅ FIX: Checking against PLACED as per new schema
+        //  FIX: Checking against PLACED as per new schema
         if (order.status !== "PLACED") {
              res.status(400).json({ message: "Order cannot be cancelled now" });
              return;
